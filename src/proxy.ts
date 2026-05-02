@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// runs in the Edge runtime — no Prisma, no Node.js APIs here
-// cookie check is enough to decide if someone should be redirected
-
 const protectedPaths = ["/dashboard"];
-const guestOnlyPaths = ["/login", "/register"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // NextAuth v5 sets this cookie for JWT sessions
-  const sessionCookie =
-    req.cookies.get("authjs.session-token") ||
-    req.cookies.get("__Secure-authjs.session-token"); // https uses the __Secure- prefix
-
-  const isLoggedIn = !!sessionCookie;
-
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-  const isGuestOnly = guestOnlyPaths.some((p) => pathname.startsWith(p));
-
-  if (isProtected && !isLoggedIn) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+  // only protect dashboard routes — login/register handle their own redirects
+  // via server-side auth() checks in the page components
+  if (!protectedPaths.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
   }
 
-  if (isGuestOnly && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  const cookies = req.cookies;
+  const isLoggedIn =
+    cookies.has("authjs.session-token") ||
+    cookies.has("__Secure-authjs.session-token") ||
+    cookies.has("next-auth.session-token") ||
+    cookies.has("__Secure-next-auth.session-token");
+
+  if (!isLoggedIn) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
