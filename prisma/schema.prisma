@@ -1,0 +1,141 @@
+// CreditWise AI - Prisma Schema
+// Using MongoDB as the database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creditProfile   CreditProfile?
+  financialGoals  FinancialGoal[]
+  accounts        FinancialAccount[]
+  aiInsights      AiInsight[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// The main credit profile for each user
+model CreditProfile {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @unique @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  creditScore     Int      // 300 - 850
+  scoreCategory   String   // Poor, Fair, Good, Very Good, Exceptional
+
+  // Credit factors (each out of 100)
+  paymentHistory      Int  @default(0)
+  creditUtilization   Int  @default(0)
+  creditAge           Int  @default(0)
+  creditMix           Int  @default(0)
+  newInquiries        Int  @default(0)
+
+  totalDebt       Float    @default(0)
+  totalCredit     Float    @default(0)
+  monthlyIncome   Float    @default(0)
+
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Financial accounts (credit cards, loans, etc.)
+model FinancialAccount {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String          @db.ObjectId
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountName   String
+  accountType   AccountType
+  institution   String
+  balance       Float           @default(0)
+  creditLimit   Float?          // only for credit cards
+  interestRate  Float?
+  isActive      Boolean         @default(true)
+  openedDate    DateTime
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+enum AccountType {
+  CREDIT_CARD
+  PERSONAL_LOAN
+  AUTO_LOAN
+  MORTGAGE
+  STUDENT_LOAN
+  SAVINGS
+  CHECKING
+}
+
+// User's financial goals
+model FinancialGoal {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String      @db.ObjectId
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  targetScore   Int         // target credit score
+  currentScore  Int
+  targetDate    DateTime
+  status        GoalStatus  @default(IN_PROGRESS)
+  priority      Priority    @default(MEDIUM)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// AI-generated insights and recommendations
+model AiInsight {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String      @db.ObjectId
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        InsightType
+  title       String
+  content     String
+  actionItems String[]    // list of action steps
+  impact      String      // Low, Medium, High
+  isRead      Boolean     @default(false)
+
+  createdAt   DateTime    @default(now())
+}
+
+enum InsightType {
+  SCORE_IMPROVEMENT
+  DEBT_REDUCTION
+  CREDIT_UTILIZATION
+  PAYMENT_REMINDER
+  GENERAL_ADVICE
+}
