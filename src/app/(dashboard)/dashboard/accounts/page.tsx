@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import AccountsList from "@/components/accounts/AccountsList";
 
 export default async function AccountsPage() {
   const session = await auth();
-  const userId = session!.user!.id!;
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const accounts = await prisma.financialAccount.findMany({
     where: { userId },

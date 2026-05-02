@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import CreditScoreCard from "@/components/dashboard/CreditScoreCard";
 import StatsRow from "@/components/dashboard/StatsRow";
 import RecentInsights from "@/components/dashboard/RecentInsights";
@@ -7,7 +8,11 @@ import QuickActions from "@/components/dashboard/QuickActions";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const userId = session!.user!.id!;
+
+  // if session is somehow null here, kick back to login
+  if (!session?.user?.id) redirect("/login");
+
+  const userId = session.user.id;
 
   const [creditProfile, accounts, goals, insights] = await Promise.all([
     prisma.creditProfile.findUnique({ where: { userId } }),

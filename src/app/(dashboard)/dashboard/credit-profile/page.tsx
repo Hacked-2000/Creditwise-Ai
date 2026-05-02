@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import CreditProfileForm from "@/components/credit-profile/CreditProfileForm";
 
 export default async function CreditProfilePage() {
   const session = await auth();
-  const userId = session!.user!.id!;
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const profile = await prisma.creditProfile.findUnique({ where: { userId } });
 

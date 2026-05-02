@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import GoalsList from "@/components/goals/GoalsList";
 
 export default async function GoalsPage() {
   const session = await auth();
-  const userId = session!.user!.id!;
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const goals = await prisma.financialGoal.findMany({
     where: { userId },
